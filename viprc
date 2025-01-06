@@ -1,0 +1,162 @@
+# 05Jan25 Lindsay Lawrence
+
+(setq *EncKeys '(("yek" . "key")))
+
+(cmd "yek" (L Lst Cnt) # Set named encryption key
+   (let (P1 NIL P2 NIL
+         GetPwd '(() (pack (make
+                  (use C
+                     (until (sub? (setq C (getch)) "\r\n")
+                        (link C)) ) ) ) )
+         )
+      (when L
+         (prCmd (make (link (chop (pack "Setting encryption key for [" L "]")))))
+         (prCmd (make (link (chop "Enter Password:"))))
+         (setq P1 (GetPwd))
+         (prCmd (make (link (chop "Confirm Password:"))))
+         (setq P2 (GetPwd))
+         (ifn (or (sp? P1) (= P1 P2))
+            (prCmd (list (chop "Encryption key NOT set; Password mismatch or empty")))
+            (if (assoc L *EncKeys)
+               (con @ P1)
+               (push '*EncKeys (cons L P1))
+               )
+            (prCmd (list (chop "Encryption key set")))
+            ) ) ) )
+
+(cmd "enc" (L Lst Cnt) # Encrypt buffer using named key
+   (when (sys "YEK" (cdr (assoc L *EncKeys)) )
+      (prCmd (make (link (chop (pack "Using encryption key for [" L "]")))))
+      (pipe
+         (out '("openssl" "enc" "-aes-256-cbc" "-salt" "-pbkdf2" "-a" "-pass" "env:YEK")
+            (mapc prinl (: buffer text)) )
+         (let (EncryptedData (rdLines))
+            (setq *Change NIL)
+            (move 'goAbs 1 (or (format *Count) 1)) # Move to top
+            (setq *Change "d") # Delete...
+            (move 'goAbs 1 (or (format *Count) T)) # Delete all
+            (setq *Change "P") # Paste
+            (paste (cons T EncryptedData) *@@) # Replace with encoded data
+            ) ) ) )
+
+(cmd "dec" (L Lst Cnt) # Decrypt buffer using named key
+   (when (sys "YEK" (cdr (assoc L *EncKeys)) )
+      (prCmd (make (link (chop (pack "Using encryption key for [" L "]")))))
+      (pipe
+         (out '("openssl" "enc" "-aes-256-cbc" "-d" "-pbkdf2" "-a" "-pass" "env:YEK")
+            (mapc prinl (: buffer text)) )
+         (let (EncryptedData (rdLines))
+            (setq *Change NIL)
+            (move 'goAbs 1 (or (format *Count) 1)) # Move to top
+            (setq *Change "d") # Delete...
+            (move 'goAbs 1 (or (format *Count) T)) # Delete all
+            (setq *Change "P") # Paste
+            (paste (cons T EncryptedData) *@@) # Replace with encoded data
+            ) ) ) )
+
+# 05mar24 Software Lab. Alexander Burger
+# Copy to ~/.pil/viprc
+
+(map+q "d" ":bd\r")
+
+## If you prefer LEFT and RIGHT to move the cursor:
+## (map+ "\e[D" "h")
+## (map+ "\e[C" "l")
+
+#{
+(cmd "pb1n" (L Lst Cnt)  # Pastebin
+   (pipe
+      (out '("curl" "-F" "f=@-;" "pb1n.de")
+         (mapc prinl (: buffer text)) )
+      (prCmd (rdLines)) ) )
+}#
+
+(cmd "zxz" (L Lst Cnt)
+   (let (RndN '((N) (setq N (or N 4))
+      (in "/dev/urandom"
+         (pack (make (do N (link (hex (rd 1))))) )
+      ) ) )
+      (pipe
+         (out '("curl" "-i" "-Ffile=@-" "https://0x0.st")
+#      (out '("cat" "-")
+            (mapc prinl (: buffer text)) )
+         (scratch (tmp (pack "zxz-" (RndN)))
+            (rdLines))
+         ) ) )
+
+#{
+(cmd "ix.io" (L Lst Cnt)
+   (pipe
+      (out '("curl" "-sF" "f:1=<-" "ix.io")
+         (mapc prinl (: buffer text)) )
+      (prCmd (rdLines)) ) )
+}#
+
+(cmd "tabs" (L Lst Cnt)
+   (let N (or (format L) 3)
+      (=: buffer text
+         (mapcar
+            '((L)
+               (make
+                  (for (I . C) L
+                     (if (= "\t" C)
+                        (loop
+                           (link (name " "))
+                           (T (=0 (% I N)))
+                           (inc 'I) )
+                        (link C) ) ) ) )
+            (: buffer text) ) ) ) )
+
+(cmd "words" (L Lst Cnt)
+   (xchg 'delimNs
+      (quote
+         ((C)
+            (nand C
+               (sub? C
+                  "0123456789\
+                  ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+                  _\
+                  abcdefghijklmnopqrstuvwxyz" ) ) ) ) )
+   (prCmd
+      (list (chop (xchg '(" C") '(" Lisp")))) ) )
+
+(de *F7  # Find current definition
+   (let L (nth (: buffer text) (: posY))
+      (prCmd
+         (list
+            (loop
+               (NIL (setq L (prior L (: buffer text))))
+               (T (head '`(chop "(class ") (car L))
+                  (car L) )
+               (T (head '`(chop "(extend ") (car L))
+                  (car L) ) ) ) ) ) )
+
+(de *F8  # Expression size
+   (evCmd (size (s-expr))) )
+
+# Timestamp
+(local) vipDat
+
+(de vipDat (N)
+   (when (<> N (: posY))
+      (let (@L (get (: text) N)  @A)
+         (and
+            (match '(@A " " @L) @L)
+            (member @A '(("#") ("/" "/") ("/" "*")))
+            (>= 31 (format (cut 2 '@L)) 1)
+            (member (pack (cut 3 '@L)) *mon)
+            (format (cut 2 '@L))
+            (mapc set
+               (set (nth (: text) N)
+                  (conc
+                     @A
+                     (list (char 32))
+                     (chop (datSym (date)))
+                     @L ) )
+               1 ) ) ) ) )
+
+(daemon '(save> . +Buffer)
+   (or (vipDat 1) (vipDat 2) (vipDat 3)) )
+
+# Local
+(and (info ".viprc") (load ".viprc"))
