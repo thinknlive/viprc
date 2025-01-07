@@ -59,7 +59,7 @@
             (setq *Change "d") # Delete...
             (move 'goAbs 1 (or (format *Count) T)) # Delete all
             (setq *Change "P") # Paste
-            (paste (cons T EncryptedData) *@@) # Replace with encoded data
+            (paste (cons T EncryptedData)) # Replace with encoded data
             ) ) ) )
 
 (cmd "zxz" (L Lst Cnt)
