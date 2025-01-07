@@ -1,6 +1,14 @@
-# 05Jan25 Lindsay Lawrence
+# 07jan25 Lindsay John Lawrence
 
 (setq *EncKeys '(("yek" . "key")))
+
+(local) (prinCmd)
+
+(de prinCmd @
+   (use L
+      (setq L (make (while (args) (link (next))) ) )
+      (prCmd (make (link (chop (pack L))))
+   )) )
 
 (cmd "yek" (L Lst Cnt) # Set named encryption key
    (let (P1 NIL P2 NIL
@@ -10,23 +18,23 @@
                         (link C)) ) ) ) )
          )
       (when L
-         (prCmd (make (link (chop (pack "Setting encryption key for [" L "]")))))
-         (prCmd (make (link (chop "Enter Password:"))))
+         (prinCmd "Setting encryption key for [" L "]")
+         (prinCmd "Enter Password:")
          (setq P1 (GetPwd))
-         (prCmd (make (link (chop "Confirm Password:"))))
+         (prinCmd "Confirm Password:")
          (setq P2 (GetPwd))
          (ifn (or (sp? P1) (= P1 P2))
-            (prCmd (list (chop "Encryption key NOT set; Password mismatch or empty")))
+            (prinCmd "Encryption key NOT set; Password mismatch or empty")
             (if (assoc L *EncKeys)
                (con @ P1)
                (push '*EncKeys (cons L P1))
                )
-            (prCmd (list (chop "Encryption key set")))
-            ) ) ) )
+            (prinCmd (chop "Encryption key set")))
+            ) ) )
 
 (cmd "enc" (L Lst Cnt) # Encrypt buffer using named key
    (when (sys "YEK" (cdr (assoc L *EncKeys)) )
-      (prCmd (make (link (chop (pack "Using encryption key for [" L "]")))))
+      (prinCmd "Using encryption key for [" L "]")
       (pipe
          (out '("openssl" "enc" "-aes-256-cbc" "-salt" "-pbkdf2" "-a" "-pass" "env:YEK")
             (mapc prinl (: buffer text)) )
@@ -41,7 +49,7 @@
 
 (cmd "dec" (L Lst Cnt) # Decrypt buffer using named key
    (when (sys "YEK" (cdr (assoc L *EncKeys)) )
-      (prCmd (make (link (chop (pack "Using encryption key for [" L "]")))))
+      (prinCmd "Using encryption key for [" L "]")
       (pipe
          (out '("openssl" "enc" "-aes-256-cbc" "-d" "-pbkdf2" "-a" "-pass" "env:YEK")
             (mapc prinl (: buffer text)) )
@@ -53,6 +61,19 @@
             (setq *Change "P") # Paste
             (paste (cons T EncryptedData) *@@) # Replace with encoded data
             ) ) ) )
+
+(cmd "zxz" (L Lst Cnt)
+   (let (RndN '((N) (setq N (or N 4))
+      (in "/dev/urandom"
+         (pack (make (do N (link (hex (rd 1))))) )
+      ) ) )
+      (pipe
+         (out '("curl" "-i" "-Ffile=@-" "https://0x0.st")
+#      (out '("cat" "-")
+            (mapc prinl (: buffer text)) )
+         (scratch (tmp (pack "zxz-" (RndN)))
+            (rdLines))
+         ) ) )
 
 # 05mar24 Software Lab. Alexander Burger
 # Copy to ~/.pil/viprc
@@ -70,19 +91,6 @@
          (mapc prinl (: buffer text)) )
       (prCmd (rdLines)) ) )
 }#
-
-(cmd "zxz" (L Lst Cnt)
-   (let (RndN '((N) (setq N (or N 4))
-      (in "/dev/urandom"
-         (pack (make (do N (link (hex (rd 1))))) )
-      ) ) )
-      (pipe
-         (out '("curl" "-i" "-Ffile=@-" "https://0x0.st")
-#      (out '("cat" "-")
-            (mapc prinl (: buffer text)) )
-         (scratch (tmp (pack "zxz-" (RndN)))
-            (rdLines))
-         ) ) )
 
 #{
 (cmd "ix.io" (L Lst Cnt)
@@ -160,3 +168,4 @@
 
 # Local
 (and (info ".viprc") (load ".viprc"))
+
