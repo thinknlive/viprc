@@ -1,4 +1,4 @@
-# 10jan25 Lindsay John Lawrence
+# 24jan25 Lindsay John Lawrence
 
 (setq *EncKeys '(("yek" . "key")))
 
@@ -62,7 +62,6 @@
             (paste (cons T EncryptedData)) # Replace with encoded data
             ) ) ) )
 
-# Upload current buffer to 0x0. Show response in another scratch buffer
 (cmd "zxz" (L Lst Cnt)
    (let (RndN '((N) (setq N (or N 4))
       (in "/dev/urandom"
@@ -77,8 +76,8 @@
          ) ) )
 
 
-(map+ "^h" (nextBuf T) )   # Previous Buffer
-(map+ "^l" (nextBuf) )     # Next buffer
+(map+ "^h" (nextBuf T) )   # [PGUP] Page up
+(map+ "^l" (nextBuf) )     # [PGDOWN] Page down
 
 (map+q "1" ":1\r")
 (map+q "2" ":2\r")
