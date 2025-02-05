@@ -1,4 +1,4 @@
-# 24jan25 Lindsay John Lawrence
+# 03feb25 Lindsay John Lawrence
 
 (setq *EncKeys '(("yek" . "key")))
 
@@ -34,7 +34,7 @@
 
 (cmd "enc" (L Lst Cnt) # Encrypt buffer using named key
    (when (sys "YEK" (cdr (assoc L *EncKeys)) )
-      (prinCmd "Using encryption key for [" L "]")
+      (prinCmd "Using encryption key for -- L |" L "| Lst |" Lst "| Cnt |" Cnt "|")
       (pipe
          (out '("openssl" "enc" "-aes-256-cbc" "-salt" "-pbkdf2" "-a" "-pass" "env:YEK")
             (mapc prinl (: buffer text)) )
@@ -75,6 +75,9 @@
             (rdLines))
          ) ) )
 
+
+(map+q "E" ":enc yek\r" )
+(map+q "D" ":dec yek\r" )
 
 (map+ "^h" (nextBuf T) )   # [PGUP] Page up
 (map+ "^l" (nextBuf) )     # [PGDOWN] Page down
