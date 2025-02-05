@@ -1,14 +1,18 @@
-# 03feb25 Lindsay John Lawrence
+# 04feb25 ljl
 
-(setq *EncKeys '(("yek" . "key")))
+(setq *EncKeys '(("yek" . NIL )))
 
 (local) (prinCmd)
 
 (de prinCmd @
-   (use L
-      (setq L (make (while (args) (link (next))) ) )
-      (prCmd (make (link (chop (pack L))))
-   )) )
+   (use (V L)
+      (setq L
+         (make
+            (while (args)
+               (setq V (next))
+               (if (lst? V) (mapc '((X) (link X) (link "|--|")) V) (link V)))))
+      (prCmd (make (link (chop (pack L)))))
+      ))
 
 (cmd "yek" (L Lst Cnt) # Set named encryption key
    (let (P1 NIL P2 NIL
@@ -29,38 +33,48 @@
                (con @ P1)
                (push '*EncKeys (cons L P1))
                )
-            (prinCmd (chop "Encryption key set")))
+            (when (= "yek" L) (sys "YEK" P1)) # Set default pwd for mapkeys
+            (prinCmd "Encryption key set"))
             ) ) )
 
 (cmd "enc" (L Lst Cnt) # Encrypt buffer using named key
    (when (sys "YEK" (cdr (assoc L *EncKeys)) )
-      (prinCmd "Using encryption key for -- L |" L "| Lst |" Lst "| Cnt |" Cnt "|")
-      (pipe
-         (out '("openssl" "enc" "-aes-256-cbc" "-salt" "-pbkdf2" "-a" "-pass" "env:YEK")
-            (mapc prinl (: buffer text)) )
-         (let (EncryptedData (rdLines))
-            (setq *Change NIL)
-            (move 'goAbs 1 (or (format *Count) 1)) # Move to top
-            (setq *Change "d") # Delete...
-            (move 'goAbs 1 (or (format *Count) T)) # Delete all
-            (setq *Change "P") # Paste
-            (paste (cons T EncryptedData) *@@) # Replace with encoded data
-            ) ) ) )
+      (prinCmd "Using encryption key for [" L "]")
+      (use (EncryptedData DecryptedData)
+         (setq DecryptedData (if (gt0 Cnt) (cdr (cutN Cnt)) (: buffer text)))
+         (pipe
+            (out '("openssl" "enc" "-aes-256-cbc" "-salt" "-pbkdf2" "-a" "-pass" "env:YEK")
+                  (mapc prinl DecryptedData))
+            (setq EncryptedData (rdLines))
+            (if (gt0 Cnt)
+               (paste (cons T EncryptedData) *@@)
+               (setq *Change NIL)
+               (move 'goAbs 1 (or (format *Count) 1)) # Move to top
+               (setq *Change "d") # Delete...
+               (move 'goAbs 1 (or (format *Count) T)) # Delete all
+               (setq *Change "P") # Paste
+               (paste (cons T EncryptedData) *@@) # Replace with encoded data
+            ) )
+   ) ))
 
 (cmd "dec" (L Lst Cnt) # Decrypt buffer using named key
    (when (sys "YEK" (cdr (assoc L *EncKeys)) )
       (prinCmd "Using encryption key for [" L "]")
-      (pipe
-         (out '("openssl" "enc" "-aes-256-cbc" "-d" "-pbkdf2" "-a" "-pass" "env:YEK")
-            (mapc prinl (: buffer text)) )
-         (let (EncryptedData (rdLines))
-            (setq *Change NIL)
-            (move 'goAbs 1 (or (format *Count) 1)) # Move to top
-            (setq *Change "d") # Delete...
-            (move 'goAbs 1 (or (format *Count) T)) # Delete all
-            (setq *Change "P") # Paste
-            (paste (cons T EncryptedData)) # Replace with encoded data
-            ) ) ) )
+      (use (EncryptedData DecryptedData)
+         (setq EncryptedData (if (gt0 Cnt) (cdr (cutN Cnt)) (: buffer text)))
+         (pipe
+            (out '("openssl" "enc" "-aes-256-cbc" "-d" "-pbkdf2" "-a" "-pass" "env:YEK")
+               (mapc prinl EncryptedData))
+            (setq DecryptedData (rdLines))
+            (if (gt0 Cnt)
+               (paste (cons T DecryptedData) *@@)
+               (setq *Change NIL)
+               (move 'goAbs 1 (or (format *Count) 1)) # Move to top
+               (setq *Change "d") # Delete...
+               (move 'goAbs 1 (or (format *Count) T)) # Delete all
+               (setq *Change "P") # Paste
+               (paste (cons T DecryptedData) *@@) # Replace with encoded data
+               ) ) ) ))
 
 (cmd "zxz" (L Lst Cnt)
    (let (RndN '((N) (setq N (or N 4))
@@ -76,13 +90,35 @@
          ) ) )
 
 
-# Shortcuts to encrypt current buffer.
-# Uses the key previously defined with name yek
+# Use "sed -n l" at terminal to get scancodes for remapping
+# ctrl+pgup "^[[5;5~"
+# ctrl+pgdn "^[[6;5~"
+# ctrl+cup "^[[1;5A"
+# ctrl+cdn "^[[1;5B"
+# ctrl+cleft "^[[1;5D"
+# ctrl+cright "^[[1;5C"
+# cup "^[[A"
+# cdn "^[[B"
+# cleft "^[[D"
+# cright "^[[C"
+
+(map+ "^[[5;5~" (move 'goUp (/ (: lines) 2)))
+(map+ "^[[6;5~" (move 'goDown (/ (: lines) 2)))
+
+(map+ "\e[D" "h")
+(map+ "\e[C" "l")
+
+(map+ "^[[1;5D" (scLeft) (redraw))
+(map+ "^[[1;5C" (scRight) (redraw))
+
+(map+ "^[[1;5A" (nextBuf T))
+(map+ "^[[1;5B" (nextBuf))
+
 (map+q "E" ":enc yek\r" )
 (map+q "D" ":dec yek\r" )
 
-(map+ "^h" (nextBuf T) )   # [PGUP] Page up
-(map+ "^l" (nextBuf) )     # [PGDOWN] Page down
+# (map+ "^h" (nextBuf T) )   # [ctrl+h] Previous buffer
+# (map+ "^l" (nextBuf) )     # [ctrl+l] Next buffer
 
 (map+q "1" ":1\r")
 (map+q "2" ":2\r")
