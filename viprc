@@ -76,6 +76,8 @@
          ) ) )
 
 
+# Shortcuts to encrypt current buffer.
+# Uses the key previously defined with name yek
 (map+q "E" ":enc yek\r" )
 (map+q "D" ":dec yek\r" )
 
